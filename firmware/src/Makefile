@@ -14,6 +14,7 @@ SRCFILES	= main.c \
 		  serial.c \
 		  i2c.c \
 		  rtc.c \
+		  backup.c \
 		  rtos/heap_4.c \
 		  rtos/list.c \
 		  rtos/port.c \

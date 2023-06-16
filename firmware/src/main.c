@@ -18,6 +18,7 @@
 #include "serial.h"
 #include "i2c.h"
 #include "rtc.h"
+#include "backup.h"
 
 /* Perform initialization:
  * - show the card address on the matrix display
@@ -56,6 +57,7 @@ int main (void)
         por_flag = true;
     RCC_CSR |= RCC_CSR_RMVF;
 
+    backup_init (); // used by power
     blink_init ();
     matrix_init ();
     address_init ();
