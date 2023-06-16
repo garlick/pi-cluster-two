@@ -22,12 +22,11 @@
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/adc.h>
-#include <libopencm3/stm32/f1/bkp.h>
-#include <libopencm3/stm32/f1/pwr.h>
 
 #include "trace.h"
 #include "power.h"
 #include "matrix.h"
+#include "backup.h"
 
 static TaskHandle_t shutdown_task_handle = NULL;
 
@@ -55,18 +54,6 @@ static bool pi_global_en_get (void)
     return false;
 }
 
-static uint16_t backup_get_dr1 (void)
-{
-    return BKP_DR1;
-}
-
-static void backup_set_dr1 (uint16_t val)
-{
-    PWR_CR |= PWR_CR_DBP;    // write access enable
-    BKP_DR1 = val;
-    PWR_CR &= ~PWR_CR_DBP;   // write access disable
-}
-
 bool power_get_state (void)
 {
     return pi_run_pg_get ();
@@ -90,7 +77,7 @@ void power_set_state (bool val)
     while (pi_run_pg_get () != val)
         vTaskDelay (pdMS_TO_TICKS (1));
 
-    backup_set_dr1 (val ? 1 : 0);
+    backup_put (0, val ? 1 : 0);
 }
 
 static void power_task (void *args __attribute((unused)))
@@ -165,11 +152,6 @@ void power_init (bool por_flag)
     rcc_periph_clock_enable (RCC_GPIOA);
     rcc_periph_clock_enable (RCC_GPIOB);
 
-    /* Enable power and backup interface clocks
-     */
-    rcc_peripheral_enable_clock (&RCC_APB1ENR, RCC_APB1ENR_PWREN);
-    rcc_peripheral_enable_clock (&RCC_APB1ENR, RCC_APB1ENR_BKPEN);
-
     /* Configure inputs
      */
     gpio_set_mode (GPIOA,
@@ -208,11 +190,11 @@ void power_init (bool por_flag)
      * Backup register preserves last power state across a reset
      * (only a warm reset if battery is not attached).
      */
-    if (por_flag || backup_get_dr1 () == 0)
+    if (por_flag || backup_get (0) == 0)
         gpio_clear (GPIOB, GPIO14);
 
     if (por_flag)
-        backup_set_dr1 (0);
+        backup_put (0, 0);
 
     xTaskCreate (power_task,
                 "power",
