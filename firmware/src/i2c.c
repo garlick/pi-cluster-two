@@ -106,28 +106,6 @@ static uint8_t bcd_to_int (uint8_t bcd)
     return i;
 }
 
-/* RTC registers are mapped read-only to nvmem for debug from linux.
- * The 8th byte is a count of the number of times the clock has been set
- * so we can infer how linux is managing the hwclock by watching nvmem.
- */
-static void ds1307_plus_count_get_from_isr (uint8_t *buf, uint8_t size)
-{
-    if (size == 8) {
-        struct rtc_time time;
-
-        rtc_get_from_isr (&time);
-
-        buf[0] = int_to_bcd (time.sec);
-        buf[1] = int_to_bcd (time.min);
-        buf[2] = int_to_bcd (time.hour);
-        buf[3] = time.day;
-        buf[4] = int_to_bcd (time.date);
-        buf[5] = int_to_bcd (time.month);
-        buf[6] = int_to_bcd (time.year);
-        buf[7] = time.set_count;
-    }
-}
-
 static void ds1307_get_from_isr (uint8_t *buf, uint8_t size)
 {
     if (size == 7) {
@@ -199,11 +177,6 @@ static struct nvram_region nvtab[] = {
         .size = NVRAM_VERSION_SIZE,
         .put = NULL,
         .get = version_get_from_isr,
-    },
-    {   .addr = 48, // debug
-        .size = 8,
-        .put = NULL,
-        .get = (nvram_get_f)ds1307_plus_count_get_from_isr,
     },
 };
 
