@@ -76,8 +76,6 @@ void power_set_state (bool val)
     pi_global_en_set (val);
     while (pi_run_pg_get () != val)
         vTaskDelay (pdMS_TO_TICKS (1));
-
-    backup_put (0, val ? 1 : 0);
 }
 
 static void power_task (void *args __attribute((unused)))
@@ -87,11 +85,19 @@ static void power_task (void *args __attribute((unused)))
     const int button_long_msec = 2000;
     bool button_press = false;
     int button_msec = 0;
+    uint8_t prev_run_pg = 0xff; // impossible value to force update
 
     for (;;) {
-        /* Ensure that the red LED tracks RUN_PG.
+        /* Ensure that the red LED and backup register tracks RUN_PG.
+         * N.B. avoid updating the backup register on every loop iteration
+         * since doing so may be a bit costly.
          */
-        matrix_set_red (pi_run_pg_get () ? 1 : 0);
+        uint8_t run_pg = pi_run_pg_get () ? 1 : 0;
+        if (run_pg != prev_run_pg) {
+            matrix_set_red (run_pg);
+            backup_put (0, run_pg);
+            prev_run_pg = run_pg;
+        }
 
         /* Perform OS friendly shutdown on short press of power button,
          * or hard power off on long press.  Or if the power is off, turn it
