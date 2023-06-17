@@ -36,7 +36,7 @@
 #include "address.h"
 #include "matrix.h"
 #include "rtc.h"
-#include "version.h"    // libbramble, for currnet git version
+#include "version.h"    // libbramble, for current git version
 #include "nvram.h"      // libbramble, for nvram region mappings
 
 #define FOLLOWER_ADDRESS 0x68 // DS1307 address from data sheet
