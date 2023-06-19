@@ -27,13 +27,13 @@ static void init_task (void *args __attribute((unused)))
 {
     uint8_t addr = address_get ();
 
+    // address range is [0:15] - display as single hex digit.
     vTaskDelay (pdMS_TO_TICKS (200));
-
-    matrix_set_char ('0' + addr / 10); // tens
-    vTaskDelay (pdMS_TO_TICKS (1000));
-
-    matrix_set_char ('0' + addr % 10); // ones
-    vTaskDelay (pdMS_TO_TICKS (1000));
+    if (addr < 10)
+        matrix_set_char ('0' + addr);
+    else
+        matrix_set_char ('A' + addr - 10);
+    vTaskDelay (pdMS_TO_TICKS (2000));
 
     matrix_set_char (' '); // clear
 
