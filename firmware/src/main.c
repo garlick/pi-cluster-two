@@ -28,18 +28,28 @@
 #include "i2c.h"
 #include "rtc.h"
 
-/* Perform initialization:
- * - show the card address on the matrix display
+bool por_flag = false;
+
+/* Continue initialization after a short delay if por_flag is true.
+ * The delay makes it more likely that hotplug insertion is complete
+ * before we read the bus address pins or initialize the CAN peripheral.
  */
 static void init_task (void *args __attribute((unused)))
 {
+    if (por_flag)
+        vTaskDelay (pdMS_TO_TICKS (1000));
+
+    address_init ();
+    canbus_init ();
+    canservices_init ();
+
+    /* Display slot address
+     */
     uint8_t addr = address_get ();
     char addrchr[] = { '0', '1', '2', '3',
                        '4', '5', '6', '7',
                        '8', '9', 'A', 'B',
                        'C', 'D', 'E', 'F' };
-
-    vTaskDelay (pdMS_TO_TICKS (200));
 
     matrix_set_char (addrchr[addr % 16]);
     vTaskDelay (pdMS_TO_TICKS (2000));
@@ -53,8 +63,6 @@ static void init_task (void *args __attribute((unused)))
 
 int main (void)
 {
-    bool por_flag = false;
-
     rcc_clock_setup_in_hse_8mhz_out_72mhz ();    // Use this for "blue pill"
 
     /* Pi power control subsystem needs to know if this is a board power-up
@@ -67,11 +75,8 @@ int main (void)
 
     blink_init ();
     matrix_init ();
-    address_init ();
     power_init (por_flag);
     serial_init ();
-    canbus_init ();
-    canservices_init ();
     i2c_init ();
     rtc_init ();
 
